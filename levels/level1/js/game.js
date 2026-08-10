@@ -379,6 +379,7 @@ function gameLoop()
 
         if (invulnerabilityTimer > 0) invulnerabilityTimer--;
 
+        // Bei Score >= 30 kommt das Clubhaus ins Bild gerollt
         if (score >= 30)
         {
             clubhouseX -= baseSpeed;
@@ -400,6 +401,7 @@ function gameLoop()
         }
         else
         {
+            // Normale Hindernis-Generierung bis Score 30
             let lastObstacle = activeObstacles[activeObstacles.length - 1];
             let currentMinGap = Math.max(280, baseMinGap - (score * 5));
             let minGap = currentMinGap + Math.random() * 110;
