@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Golf Run</title>
+    <style>
+        body
+        {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: sans-serif;
+        }
+
+        #game-container
+        {
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas
+        {
+            display: block;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+    </div>
+
+    <!-- Zentrale Shared-Skripte -->
+    <script src="shared/js/config.js"></script>
+    <script src="shared/audio/audio.js"></script>
+    <script src="shared/js/sprites.js"></script>
+    
+    <!-- Level 1 Skripte -->
+    <script src="levels/level1/js/entities.js"></script>
+    <script src="levels/level1/js/game.js"></script>
+
+    <script>
+        function startLevel2()
+        {
+            console.log("Level 1 gemeistert! Lade Level 2...");
+            window.location.href = "levels/level2/index.html";
+        }
+
+        window.addEventListener("DOMContentLoaded", () =>
+        {
+            if (typeof initGame === "function")
+            {
+                initGame(1);
+            }
+        });
+    </script>
+</body>
+</html>

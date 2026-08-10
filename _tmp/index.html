@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LIE Scorecard - PixelGolf</title>
+    <style>
+        *
+        {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body
+        {
+            background-color: #0f172a;
+            color: #fff;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container
+        {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas
+        {
+            background: #000;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            image-rendering: pixelated;
+        }
+
+        .menu-overlay
+        {
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+        }
+
+        button
+        {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            background: #eab308;
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        button:active
+        {
+            transform: scale(0.96);
+        }
+
+        button:hover
+        {
+            background: #ca8a04;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="menu-overlay">
+        <button id="btn-runner">Kapitel I: Runner</button>
+        <button id="btn-siege">Kapitel II: Siege</button>
+    </div>
+
+    <script type="module">
+        import { GameEngine } from './core/Engine.js';
+        import { InputController } from './core/InputController.js';
+        import { ApiBridge } from './core/ApiBridge.js';
+        import { SoundEngine } from './core/Audio.js';
+        import { RunnerMode } from './modes/RunnerMode.js';
+        import { SiegeMode } from './modes/SiegeMode.js';
+
+        const engine = new GameEngine('gameCanvas', 800, 450);
+        const input = new InputController(engine.canvas);
+        const api = new ApiBridge();
+        const sound = new SoundEngine();
+
+        engine.bindDependencies(input, api, sound);
+
+        const runnerMode = new RunnerMode();
+        const siegeMode = new SiegeMode();
+
+        const startAudio = () =>
+        {
+            sound.init();
+        };
+
+        window.addEventListener('pointerdown', startAudio, { once: true });
+        window.addEventListener('keydown', startAudio, { once: true });
+
+        document.getElementById('btn-runner').addEventListener('click', () => 
+        {
+            engine.setMode(runnerMode);
+            engine.setState('PLAYING');
+        });
+
+        document.getElementById('btn-siege').addEventListener('click', () => 
+        {
+            engine.setMode(siegeMode);
+            engine.setState('PLAYING');
+        });
+
+        engine.setMode(runnerMode);
+        engine.setState('PLAYING');
+        engine.start();
+    </script>
+</body>
+</html>
