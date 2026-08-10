@@ -4,30 +4,54 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let musicInterval = null;
 let musicStep = 0;
 
-// Frequenzen für Musik-Noten (in Hz)
+// Noten-Frequenzen (in Hz)
 const NOTES = {
     C3: 130.81, D3: 146.83, Ds3: 155.56, F3: 174.61, G3: 196.00, Gs3: 207.65, As3: 233.08, B3: 246.94,
     C4: 261.63, D4: 293.66, Ds4: 311.13, F4: 349.23, G4: 392.00, Gs4: 415.30, As4: 466.16, B4: 493.88,
-    C5: 523.25, D5: 587.33, Ds5: 622.25, F5: 698.46, G5: 783.99, Gs5: 830.61, As5: 932.33, B5: 987.77, REST: 0
+    C5: 523.25, D5: 587.33, Ds5: 622.25, F5: 698.46, G5: 783.99, Gs5: 830.61, As5: 932.33, B5: 987.77,
+    C6: 1046.50, D6: 1174.66, E5: 659.25, E6: 1318.51, F6: 1396.91, G6: 1567.98, A5: 880.00, B5: 987.77, REST: 0
 };
 
-// C64 Track
+// --- 1. TRACK FÜR LEVEL 1: HELLE DAYTIME-MELODIE (C-DUR) ---
+const dayLeadTrack = [
+    NOTES.C5, NOTES.E5, NOTES.G5, NOTES.C6,
+    NOTES.G5, NOTES.E5, NOTES.C5, NOTES.REST,
+    NOTES.F5, NOTES.A5, NOTES.C6, NOTES.F6,
+    NOTES.C6, NOTES.A5, NOTES.F5, NOTES.REST,
+    NOTES.G5, NOTES.B5, NOTES.D6, NOTES.G6,
+    NOTES.D6, NOTES.B5, NOTES.G5, NOTES.REST,
+    NOTES.C6, NOTES.G5, NOTES.E5, NOTES.G5,
+    NOTES.C6, NOTES.REST, NOTES.REST, NOTES.REST
+];
+
+const dayBassTrack = [
+    NOTES.C3, NOTES.REST, NOTES.C3, NOTES.REST,
+    NOTES.F3, NOTES.REST, NOTES.F3, NOTES.REST,
+    NOTES.G3, NOTES.REST, NOTES.G3, NOTES.REST,
+    NOTES.C3, NOTES.REST, NOTES.G3, NOTES.REST
+];
+
+// --- 2. TRACK FÜR LEVEL 2: DÜSTERE ZOMBIE-MELODIE (C-MOLL) ---
 const spookyLeadTrack = [
+    // Teil 1: Thema A
     NOTES.C5,  NOTES.REST, NOTES.Ds5, NOTES.G5,  
     NOTES.C5,  NOTES.REST, NOTES.D5,  NOTES.REST,
     NOTES.Gs4, NOTES.C5,   NOTES.Ds5, NOTES.F5,  
     NOTES.G5,  NOTES.F5,   NOTES.Ds5, NOTES.D5,
 
+    // Teil 2: Thema B
     NOTES.C5,  NOTES.Ds5,  NOTES.G5,  NOTES.C5, 
     NOTES.As5, NOTES.Gs5,  NOTES.G5,  NOTES.F5,
     NOTES.Ds5, NOTES.F5,   NOTES.G5,  NOTES.Ds5,
     NOTES.D5,  NOTES.REST, NOTES.G4,  NOTES.REST,
 
+    // Teil 3: Thema C
     NOTES.Gs4, NOTES.Gs4,  NOTES.C5,  NOTES.Ds5,
     NOTES.F5,  NOTES.Ds5,  NOTES.D5,  NOTES.C5,
     NOTES.D5,  NOTES.G4,   NOTES.B4,  NOTES.D5,
     NOTES.F5,  NOTES.Ds5,  NOTES.D5,  NOTES.B4,
 
+    // Teil 4: Überleitung
     NOTES.C5,  NOTES.Ds5,  NOTES.F5,  NOTES.G5,
     NOTES.Gs5, NOTES.G5,   NOTES.F5,  NOTES.Ds5,
     NOTES.D5,  NOTES.F5,   NOTES.Ds5, NOTES.D5,
@@ -67,19 +91,65 @@ const spookyArpeggios = [
     [NOTES.G3, NOTES.B4,  NOTES.D5]
 ];
 
+// --- LEVEL 1 MUSIK (Tages-Golfen) ---
+function startC64Music()
+{
+    stopC64Music();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    musicStep = 0;
+    musicInterval = setInterval(() => {
+        if (typeof currentState !== 'undefined' && currentState !== GAME_STATE.PLAYING) return;
+
+        const now = audioCtx.currentTime;
+        const stepIdx = musicStep % dayLeadTrack.length;
+
+        let leadFreq = dayLeadTrack[stepIdx];
+        if (leadFreq > 0)
+        {
+            let osc1 = audioCtx.createOscillator();
+            let gain1 = audioCtx.createGain();
+            osc1.type = 'square';
+            osc1.frequency.setValueAtTime(leadFreq, now);
+            gain1.gain.setValueAtTime(0.03, now);
+            gain1.gain.linearRampToValueAtTime(0.001, now + 0.1);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.1);
+        }
+
+        let bassFreq = dayBassTrack[musicStep % dayBassTrack.length];
+        if (bassFreq > 0)
+        {
+            let osc2 = audioCtx.createOscillator();
+            let gain2 = audioCtx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(bassFreq, now);
+            gain2.gain.setValueAtTime(0.06, now);
+            gain2.gain.linearRampToValueAtTime(0.001, now + 0.12);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start(now);
+            osc2.stop(now + 0.12);
+        }
+
+        musicStep++;
+    }, 140);
+}
+
+// --- LEVEL 2 MUSIK (Zombie Siege) ---
 function startSpookyC64Music()
 {
     stopC64Music();
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
     musicStep = 0;
-    musicInterval = setInterval(() => 
-    {
+    musicInterval = setInterval(() => {
         if (typeof currentState !== 'undefined' && currentState !== GAME_STATE.PLAYING) return;
 
         const now = audioCtx.currentTime;
-        const totalSteps = spookyLeadTrack.length;
-        const stepIdx = musicStep % totalSteps;
+        const stepIdx = musicStep % spookyLeadTrack.length;
 
         let leadFreq = spookyLeadTrack[stepIdx];
         if (leadFreq > 0)
@@ -133,8 +203,6 @@ function startSpookyC64Music()
     }, 150);
 }
 
-function startC64Music() { startSpookyC64Music(); }
-
 function stopC64Music()
 {
     if (musicInterval)
@@ -144,6 +212,7 @@ function stopC64Music()
     }
 }
 
+// --- SOUNDEFFEKTE ---
 function playJumpSound()
 {
     if (audioCtx.state === 'suspended') audioCtx.resume();

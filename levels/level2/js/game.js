@@ -194,6 +194,22 @@ document.addEventListener("keydown", (e) =>
         swingPower = 0;
     }
 
+    // Taste 'P': Pause umschalten
+    if (e.code === "KeyP" && currentState !== GAME_STATE.GAMEOVER && currentState !== GAME_STATE.WON && currentState !== GAME_STATE.START)
+    {
+        if (currentState === GAME_STATE.PLAYING)
+        {
+            currentState = GAME_STATE.PAUSED;
+            if (typeof stopC64Music === "function") stopC64Music();
+        }
+        else if (currentState === GAME_STATE.PAUSED)
+        {
+            currentState = GAME_STATE.PLAYING;
+            if (typeof startSpookyC64Music === "function") startSpookyC64Music();
+        }
+        return;
+    }    
+
     if ((currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER) &&
         restartCooldownTimer === 0 &&
         (e.code === "Space" || e.code === "KeyR" || e.code === "Enter"))
@@ -213,46 +229,141 @@ document.addEventListener("keyup", (e) =>
     }
 });
 
-// --- STEUERUNG: TOUCH / MAUSKLICK (INCL. HIGHSCORE ICON) ---
-canvas.addEventListener("pointerdown", (e) => 
+// --- TOUCH-STEUERUNG FÜR MOBILGERÄTE (MULTITOUCH) ---
+function handleTouchStart(e)
 {
+    e.preventDefault();
+    if (typeof audioCtx !== 'undefined' && audioCtx.state === 'suspended')
+    {
+        audioCtx.resume();
+    }
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
+    // Bewegungseingaben zurücksetzen
+    keys["ArrowLeft"] = false;
+    keys["ArrowRight"] = false;
 
-    if ((currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER) && typeof checkScoreboardIconClick === "function")
+    for (let i = 0; i < e.touches.length; i++)
     {
-        if (checkScoreboardIconClick(clickX, clickY, canvas.width, canvas.height))
+        const touch = e.touches[i];
+        const touchX = (touch.clientX - rect.left) * scaleX;
+        const touchY = (touch.clientY - rect.top) * scaleY;
+
+        // 1. Highscore-Icon Check bei Game Over oder Sieg
+        if ((currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER) && typeof checkScoreboardIconClick === "function")
         {
-            return;
+            if (checkScoreboardIconClick(touchX, touchY, canvas.width, canvas.height)) return;
         }
-    }
 
-    if (currentState === GAME_STATE.PLAYING && !powerCharging && shotCooldownTimer === 0 && remainingBalls > 0)
-    {
-        powerCharging = true;
-        swingPower = 0;
-    }
-    else if (currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER)
-    {
-        if (restartCooldownTimer === 0)
+        // Restart bei Game Over / Sieg per Touch
+        if ((currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER) && restartCooldownTimer === 0)
         {
             initLevel2();
+            return;
+        }
+
+        // 2. Bewegung LINKS: Button unten links (x: 15 bis 65, y >= 370)
+        if (touchX >= 10 && touchX <= 68 && touchY >= 370)
+        {
+            keys["ArrowLeft"] = true;
+        }
+        // 3. Bewegung RECHTS: Button unten links (x: 72 bis 128, y >= 370)
+        else if (touchX >= 72 && touchX <= 130 && touchY >= 370)
+        {
+            keys["ArrowRight"] = true;
+        }
+
+        // 4. Schlag aufladen: Rechte Bildschirmhälfte (x > 180)
+        else if (touchX > 180)
+        {
+            if (!powerCharging && shotCooldownTimer === 0 && remainingBalls > 0 && currentState === GAME_STATE.PLAYING)
+            {
+                powerCharging = true;
+                swingPower = 0;
+            }
         }
     }
-});
+}
 
-canvas.addEventListener("pointerup", (e) => 
+function handleTouchEnd(e)
 {
-    if (powerCharging && currentState === GAME_STATE.PLAYING)
+    e.preventDefault();
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    let rightTouchActive = false;
+
+    for (let i = 0; i < e.touches.length; i++)
+    {
+        const touchX = (e.touches[i].clientX - rect.left) * scaleX;
+        if (touchX > 180) rightTouchActive = true;
+    }
+
+    if (!rightTouchActive && powerCharging && currentState === GAME_STATE.PLAYING)
     {
         powerCharging = false;
         shootBall();
     }
-});
+
+    handleTouchStart(e);
+}
+
+canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+canvas.addEventListener("touchmove", handleTouchStart, { passive: false });
+
+// --- TOUCH-BUTTONS ZEICHNEN ---
+// --- RETRO PIXEL-TOUCH-BUTTONS ZEICHNEN ---
+function drawTouchControls(ctx)
+{
+    const btnY = 385;
+    const btnSize = 50;
+
+    // Button-Konfigurationen: [X-Position, Symbol, Key-State]
+    const btnLeftPressed = keys["ArrowLeft"];
+    const btnRightPressed = keys["ArrowRight"];
+
+    const buttons = [
+        { x: 15, y: btnY, text: "◄", pressed: btnLeftPressed },
+        { x: 75, y: btnY, text: "►", pressed: btnRightPressed }
+    ];
+
+    for (let btn of buttons)
+    {
+        let offset = btn.pressed ? 2 : 0; // Einsinken beim Drücken
+
+        // 1. Dunkler 3D-Schatten unten
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(btn.x, btn.y + 4, btnSize, btnSize);
+
+        // 2. Haupt-Button Body (Sandgelb/Retro-Gold)
+        ctx.fillStyle = btn.pressed ? "#d35400" : "#f39c12";
+        ctx.fillRect(btn.x, btn.y + offset, btnSize, btnSize);
+
+        // 3. Pixel-Rand
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(btn.x, btn.y + offset, btnSize, btnSize);
+
+        // 4. Highlight Kante oben
+        if (!btn.pressed)
+        {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.fillRect(btn.x + 2, btn.y + 2, btnSize - 4, 4);
+        }
+
+        // 5. Pfeil-Symbol
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 20px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(btn.text, btn.x + (btnSize / 2), btn.y + offset + 32);
+    }
+
+    ctx.textAlign = "left"; // Alignment zurücksetzen
+}
 
 function shootBall()
 {
@@ -427,6 +538,27 @@ function gameLoop()
         }
     }
 
+    if (currentState === GAME_STATE.PAUSED)
+    {
+        // Dunkler Overlay-Schleier
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Pause Text
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 36px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("PAUSE ⏸️", canvas.width / 2, 200);
+
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#dddddd";
+        ctx.fillText("Drücke 'P' zum Fortsetzen", canvas.width / 2, 240);
+        ctx.textAlign = "left"; // Rest-Alignment zurücksetzen
+
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     for (let block of wallBlocks) block.draw(ctx);
     for (let d of wallDebrisList) d.draw(ctx);
     for (let z of zombies) z.draw(ctx);
@@ -562,6 +694,9 @@ function gameLoop()
             drawScoreboardIcon(ctx, canvas.width, canvas.height);
         }
     }
+
+    // Touch-Buttons für Mobilgeräte zeichnen
+    drawTouchControls(ctx);
 
     requestAnimationFrame(gameLoop);
 }
