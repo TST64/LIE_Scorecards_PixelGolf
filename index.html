@@ -2,39 +2,14 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pixel Golf Run</title>
-    <style>
-        body
-        {
-            margin: 0;
-            padding: 0;
-            background-color: #222;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            font-family: sans-serif;
-        }
-
-        #game-container
-        {
-            position: relative;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        canvas
-        {
-            display: block;
-            background-color: #000;
-        }
-    </style>
+    <!-- Zentrales CSS einbinden -->
+    <link rel="stylesheet" href="shared/css/style.css">
 </head>
 <body>
 
-    <div id="game-container">
+    <div id="gameContainer">
         <canvas id="gameCanvas" width="800" height="450"></canvas>
     </div>
 

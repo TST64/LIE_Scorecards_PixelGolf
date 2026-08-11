@@ -114,7 +114,7 @@ document.addEventListener("keydown", (e) =>
     // CHEAT-KEY 'ü' ODER 'Ü': Level 1 überspringen
     if ((e.key === "ü" || e.key === "Ü") && typeof CHEAT_MODE_ENABLED !== "undefined" && CHEAT_MODE_ENABLED)
     {
-        score = 30;
+        score = 30 + Math.round(health) + Math.round(stamina);
         clubhouseX = 550;
         levelCompleted = true;
         player.y = PLAYER_BASE_Y;
@@ -379,29 +379,37 @@ function gameLoop()
 
         if (invulnerabilityTimer > 0) invulnerabilityTimer--;
 
-        // Bei Score >= 30 kommt das Clubhaus ins Bild gerollt
+        // Bei 30 geschafften Hindernissen das Clubhaus ins Bild fahren lassen
         if (score >= 30)
         {
             clubhouseX -= baseSpeed;
             if (clubhouseX <= 550)
             {
                 clubhouseX = 550;
-                levelCompleted = true;
+
+                // Einmalige Berechnung des Gesamt-Scores inklusive Boni
+                if (!levelCompleted)
+                {
+                    levelCompleted = true;
+
+                    let healthBonus = Math.round(health);
+                    let staminaBonus = Math.round(stamina);
+                    score = 30 + healthBonus + staminaBonus;
+
+                    if (typeof stopC64Music === "function") stopC64Music();
+                    if (typeof sendHighscore === "function")
+                    {
+                        sendHighscore("savePixelGolfHighscore", currentPlayerName, score);
+                    }
+                }
 
                 player.y = PLAYER_BASE_Y;
                 player.velocityY = 0;
                 isGrounded = true;
-
-                if (typeof stopC64Music === "function") stopC64Music();
-                if (typeof sendHighscore === "function")
-                {
-                    sendHighscore("savePixelGolfHighscore", currentPlayerName, score);
-                }
             }
         }
         else
         {
-            // Normale Hindernis-Generierung bis Score 30
             let lastObstacle = activeObstacles[activeObstacles.length - 1];
             let currentMinGap = Math.max(280, baseMinGap - (score * 5));
             let minGap = currentMinGap + Math.random() * 110;
@@ -571,21 +579,28 @@ function gameLoop()
         playerSprite.currentFrame = celebrateFrame;
         playerSprite.draw(ctx, player.x, PLAYER_BASE_Y + jumpOffset);
 
-        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-        ctx.fillRect(150, 150, 500, 110);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.fillRect(150, 140, 500, 130);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
         ctx.lineWidth = 1;
-        ctx.strokeRect(150, 150, 500, 110);
+        ctx.strokeRect(150, 140, 500, 130);
 
         ctx.fillStyle = "#2ecc71";
         ctx.font = "bold 22px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("LEVEL 1 ABGESCHLOSSEN! ⛳", 400, 185);
+        ctx.fillText("LEVEL 1 ABGESCHLOSSEN! ⛳", 400, 170);
 
         ctx.fillStyle = "white";
         ctx.font = "14px Arial";
-        ctx.fillText(`Glückwunsch ${currentPlayerName}! Clubhaus erreicht.`, 400, 215);
-        ctx.fillText("Tippe oder drücke LEERTASTE für Level 2", 400, 238);
+        ctx.fillText(`Basis: 30  |  Health-Bonus: +${Math.round(health)}  |  Stamina-Bonus: +${Math.round(stamina)}`, 400, 198);
+
+        ctx.fillStyle = "#f1c40f";
+        ctx.font = "bold 20px Arial";
+        ctx.fillText(`Gesamt Score: ${score}`, 400, 225);
+
+        ctx.fillStyle = "#ddd";
+        ctx.font = "12px Arial";
+        ctx.fillText("Tippe oder drücke LEERTASTE für Level 2", 400, 252);
         ctx.textAlign = "left";
 
         if (typeof drawScoreboardIcon === "function")
