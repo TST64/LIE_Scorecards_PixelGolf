@@ -1,44 +1,3 @@
-class AnimatedSprite
-{
-    constructor(frames, pixelSize, ticksPerFrame = 12)
-    {
-        this.frames = frames;
-        this.pixelSize = pixelSize;
-        this.currentFrame = 0;
-        this.tickCount = 0;
-        this.ticksPerFrame = ticksPerFrame; // Nimmt jetzt den übergebenen Wert an!
-    }
-
-    update()
-    {
-        this.tickCount++;
-        if (this.tickCount >= this.ticksPerFrame)
-        {
-            this.tickCount = 0;
-            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
-        }
-    }
-
-    draw(ctx, x, y)
-    {
-        const frame = this.frames[this.currentFrame];
-        for (let row = 0; row < frame.length; row++)
-        {
-            for (let col = 0; col < frame[row].length; col++)
-            {
-                let colorIndex = frame[row][col];
-                if (colorIndex !== 0)
-                {
-                    ctx.fillStyle = colorPalette[colorIndex];
-                    let drawX = x + (col * this.pixelSize);
-                    let drawY = y + (row * this.pixelSize);
-                    ctx.fillRect(drawX, drawY, this.pixelSize, this.pixelSize);
-                }
-            }
-        }
-    }
-}
-
 // Sternenfeld für den Nachtmodus
 let stars = [];
 for (let i = 0; i < 20; i++)
@@ -92,25 +51,30 @@ class ItemPickup
 
 let activePickups = [];
 
-// Erzeugt zufällige Power-Ups mit erhöhter Chance (60%)
+// Erzeugt zufällige Power-Ups mit erhöhter Chance (60%) auf variabler Höhe
 function spawnPickup(startX)
 {
     if (Math.random() < 0.6)
     {
         let types = ["stamina", "stamina", "health", "ball"];
         let randomType = types[Math.floor(Math.random() * types.length)];
-        let spawnY = 70 + Math.random() * 50; // Schwebend auf Sprunghöhe
+        
+        // Dynamische Y-Höhe: Von hoch (ca. 100px) bis knapp über den Boden (ca. 320px)
+        let minY = 100;
+        let maxY = GROUND_Y - 60; // 320px
+        let spawnY = minY + Math.random() * (maxY - minY);
+
         activePickups.push(new ItemPickup(startX + 80, spawnY, randomType));
     }
 }
 
-// In obstacleTypes in levels/level1/js/entities.js:
+// Hindernis-Typen
 const obstacleTypes = [
-    { type: "single", sprite: new AnimatedSprite([flagFrame1, flagFrame2], pixelScale, 30), flying: false, damage: 25 }, // Fahne weht sehr ruhig
-    { type: "single", sprite: new AnimatedSprite([cartFrame1, cartFrame2], pixelScale, 50), flying: false, damage: 50 },  // Cart ruckelt sanft
+    { type: "single", sprite: new AnimatedSprite([flagFrame1, flagFrame2], pixelScale, 30), flying: false, damage: 25 },
+    { type: "single", sprite: new AnimatedSprite([cartFrame1, cartFrame2], pixelScale, 50), flying: false, damage: 50 },
     { type: "single", sprite: new AnimatedSprite([treeFrame], pixelScale, 12), flying: false, damage: 25 },
-    { type: "single", sprite: new AnimatedSprite([otherGolferFrame1, otherGolferFrame2], pixelScale, 14), flying: false, damage: 25 }, // Gegenspieler geht gemütlich
-    { type: "single", sprite: new AnimatedSprite([birdFrame1, birdFrame2], pixelScale, 8), flying: true, damage: 15 },    // Vogel flattert etw. schneller
+    { type: "single", sprite: new AnimatedSprite([otherGolferFrame1, otherGolferFrame2], pixelScale, 14), flying: false, damage: 25 },
+    { type: "single", sprite: new AnimatedSprite([birdFrame1, birdFrame2], pixelScale, 8), flying: true, damage: 15 },
     { type: "bunker", flying: false, damage: 35 },
     { type: "water", flying: false, damage: 35 }
 ];
@@ -122,7 +86,7 @@ function createObstacle(startX)
 
     let newObstacle = {
         x: startX,
-        y: 130,
+        y: GROUND_Y,
         width: objSize,
         height: objSize,
         sprites: [],
@@ -140,8 +104,12 @@ function createObstacle(startX)
         }
         newObstacle.sprites.push(new AnimatedSprite([bunkerRight], pixelScale));
 
-        newObstacle.width = newObstacle.sprites.length * objSize;
-        newObstacle.y = 130;
+        let rows = bunkerLeft.length;
+        newObstacle.height = rows * pixelScale;
+        newObstacle.width = newObstacle.sprites.length * (bunkerLeft[0].length * pixelScale);
+        
+        // Dynamisch exakt auf den Boden setzen
+        newObstacle.y = GROUND_Y - newObstacle.height;
     }
     else if (selectedType.type === "water")
     {
@@ -153,8 +121,12 @@ function createObstacle(startX)
         }
         newObstacle.sprites.push(new AnimatedSprite([waterRight], pixelScale));
 
-        newObstacle.width = newObstacle.sprites.length * objSize;
-        newObstacle.y = 130;
+        let rows = waterLeft.length;
+        newObstacle.height = rows * pixelScale;
+        newObstacle.width = newObstacle.sprites.length * (waterLeft[0].length * pixelScale);
+
+        // Dynamisch exakt auf den Boden setzen
+        newObstacle.y = GROUND_Y - newObstacle.height;
     }
     else
     {
@@ -173,11 +145,10 @@ function createObstacle(startX)
         }
         else
         {
-            newObstacle.y = 170 - newObstacle.height;
+            newObstacle.y = GROUND_Y - newObstacle.height;
         }
     }
 
-    // Power-Up zusammen mit dem Hindernis erzeugen
     spawnPickup(startX);
 
     return newObstacle;

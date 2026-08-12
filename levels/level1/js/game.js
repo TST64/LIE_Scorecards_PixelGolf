@@ -13,17 +13,17 @@ const GAME_STATE =
 let currentState = GAME_STATE.START;
 
 // Gameplay- & Physik-Parameter
-let initialJumpPower = -1.0;
-let holdBoostPower = -0.2;
-let gravity = 0.1;
+let initialJumpPower = -4.0;
+let holdBoostPower = -0.18; 
+let gravity = 0.2;
 
-let initialBaseSpeed = 2.0;
+let initialBaseSpeed = 4.0;
 let baseSpeed = initialBaseSpeed;
 
-let staminaDrain = 1.2;
-let staminaRegen = 0.9;
+let staminaDrain = 1.0;
+let staminaRegen = 1.0;
 let baseMinGap = 480;
-const speedIncrement = 0.05;
+const speedIncrement = 0.08;
 
 // Status-Werte
 let stamina = 100;
