@@ -116,39 +116,14 @@ DATEIINHALTE:
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pixel Golf Run</title>
-    <style>
-        body
-        {
-            margin: 0;
-            padding: 0;
-            background-color: #222;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            font-family: sans-serif;
-        }
-
-        #game-container
-        {
-            position: relative;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        canvas
-        {
-            display: block;
-            background-color: #000;
-        }
-    </style>
+    <!-- Zentrales CSS einbinden -->
+    <link rel="stylesheet" href="shared/css/style.css">
 </head>
 <body>
 
-    <div id="game-container">
+    <div id="gameContainer">
         <canvas id="gameCanvas" width="800" height="450"></canvas>
     </div>
 
@@ -515,7 +490,7 @@ document.addEventListener("keydown", (e) =>
     // CHEAT-KEY 'ü' ODER 'Ü': Level 1 überspringen
     if ((e.key === "ü" || e.key === "Ü") && typeof CHEAT_MODE_ENABLED !== "undefined" && CHEAT_MODE_ENABLED)
     {
-        score = 30;
+        score = 30 + Math.round(health) + Math.round(stamina);
         clubhouseX = 550;
         levelCompleted = true;
         player.y = PLAYER_BASE_Y;
@@ -780,29 +755,37 @@ function gameLoop()
 
         if (invulnerabilityTimer > 0) invulnerabilityTimer--;
 
-        // Bei Score >= 30 kommt das Clubhaus ins Bild gerollt
+        // Bei 30 geschafften Hindernissen das Clubhaus ins Bild fahren lassen
         if (score >= 30)
         {
             clubhouseX -= baseSpeed;
             if (clubhouseX <= 550)
             {
                 clubhouseX = 550;
-                levelCompleted = true;
+
+                // Einmalige Berechnung des Gesamt-Scores inklusive Boni
+                if (!levelCompleted)
+                {
+                    levelCompleted = true;
+
+                    let healthBonus = Math.round(health);
+                    let staminaBonus = Math.round(stamina);
+                    score = 30 + healthBonus + staminaBonus;
+
+                    if (typeof stopC64Music === "function") stopC64Music();
+                    if (typeof sendHighscore === "function")
+                    {
+                        sendHighscore("savePixelGolfHighscore", currentPlayerName, score);
+                    }
+                }
 
                 player.y = PLAYER_BASE_Y;
                 player.velocityY = 0;
                 isGrounded = true;
-
-                if (typeof stopC64Music === "function") stopC64Music();
-                if (typeof sendHighscore === "function")
-                {
-                    sendHighscore("savePixelGolfHighscore", currentPlayerName, score);
-                }
             }
         }
         else
         {
-            // Normale Hindernis-Generierung bis Score 30
             let lastObstacle = activeObstacles[activeObstacles.length - 1];
             let currentMinGap = Math.max(280, baseMinGap - (score * 5));
             let minGap = currentMinGap + Math.random() * 110;
@@ -972,21 +955,28 @@ function gameLoop()
         playerSprite.currentFrame = celebrateFrame;
         playerSprite.draw(ctx, player.x, PLAYER_BASE_Y + jumpOffset);
 
-        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
-        ctx.fillRect(150, 150, 500, 110);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.fillRect(150, 140, 500, 130);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
         ctx.lineWidth = 1;
-        ctx.strokeRect(150, 150, 500, 110);
+        ctx.strokeRect(150, 140, 500, 130);
 
         ctx.fillStyle = "#2ecc71";
         ctx.font = "bold 22px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("LEVEL 1 ABGESCHLOSSEN! ⛳", 400, 185);
+        ctx.fillText("LEVEL 1 ABGESCHLOSSEN! ⛳", 400, 170);
 
         ctx.fillStyle = "white";
         ctx.font = "14px Arial";
-        ctx.fillText(`Glückwunsch ${currentPlayerName}! Clubhaus erreicht.`, 400, 215);
-        ctx.fillText("Tippe oder drücke LEERTASTE für Level 2", 400, 238);
+        ctx.fillText(`Basis: 30  |  Health-Bonus: +${Math.round(health)}  |  Stamina-Bonus: +${Math.round(stamina)}`, 400, 198);
+
+        ctx.fillStyle = "#f1c40f";
+        ctx.font = "bold 20px Arial";
+        ctx.fillText(`Gesamt Score: ${score}`, 400, 225);
+
+        ctx.fillStyle = "#ddd";
+        ctx.font = "12px Arial";
+        ctx.fillText("Tippe oder drücke LEERTASTE für Level 2", 400, 252);
         ctx.textAlign = "left";
 
         if (typeof drawScoreboardIcon === "function")
@@ -2304,11 +2294,9 @@ html, body
     font-family: sans-serif;
     color: #fff;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
 
-    /* Verhindert ungewolltes Scrollen, Markieren und Heranzoomen auf Mobilgeräten */
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
@@ -2318,75 +2306,29 @@ html, body
 #gameContainer, #game-container
 {
     position: relative;
-    width: 100%;
-    max-width: 800px;
-    padding: 10px;
-    box-sizing: border-box;
+    width: 100vw;
+    height: 100dvh;
     display: flex;
     justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
 }
 
 canvas
 {
-    border: 3px solid #fff;
+    border: 2px solid #fff;
     background-color: #87CEEB;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
     display: block;
 
-    /* Responsive Skalierung für Mobilgeräte (16:9 Format) */
-    width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 16 / 9;
+    /* Erzwingt exakte 16:9 Proportionen basierend auf Viewport-Breite und -Höhe */
+    width: min(100vw, calc(100dvh * (16 / 9))) !important;
+    height: min(calc(100vw * (9 / 16)), 100dvh) !important;
 
-    /* Verhindert mobiles Auswählen und Kontextmenüs auf dem Canvas */
     touch-action: none;
     -webkit-touch-callout: none;
-}
-
-/* Test- & Balancing-Panel Styling (falls im Debug-Modus aktiv) */
-#controlsPanel
-{
-    margin-top: 15px;
-    width: 800px;
-    max-width: 95%;
-    background-color: #222;
-    border: 2px solid #555;
-    border-radius: 8px;
-    padding: 15px;
-    box-sizing: border-box;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 20px;
-}
-
-.control-group
-{
-    display: flex;
-    flex-direction: column;
-    font-size: 13px;
-}
-
-.control-group div
-{
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-}
-
-.control-group input[type=range]
-{
-    cursor: pointer;
-}
-
-.panel-title
-{
-    grid-column: 1 / -1;
-    font-size: 16px;
-    font-weight: bold;
-    color: #ffaa00;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
-    margin-bottom: 5px;
 }
 
 

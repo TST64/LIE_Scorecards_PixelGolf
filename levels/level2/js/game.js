@@ -169,16 +169,9 @@ document.addEventListener("keydown", (e) =>
     // CHEAT-KEY 'ü' ODER 'Ü': Level 2 sofort gewinnen / überspringen
     if ((e.key === "ü" || e.key === "Ü") && typeof CHEAT_MODE_ENABLED !== "undefined" && CHEAT_MODE_ENABLED)
     {
-        // Alle Zombies besiegen
-        for (let z of zombies)
-        {
-            z.isDead = true;
-        }
-
-        // Mauer zum Einsturz bringen
+        for (let z of zombies) z.isDead = true;
         triggerWallExplosion();
 
-        // Spieler ans Clubhaus setzen und Gewinn-Status auslösen
         playerX = 680;
         currentState = GAME_STATE.WON;
         restartCooldownTimer = restartCooldownDuration;
@@ -194,7 +187,6 @@ document.addEventListener("keydown", (e) =>
         swingPower = 0;
     }
 
-    // Taste 'P': Pause umschalten
     if (e.code === "KeyP" && currentState !== GAME_STATE.GAMEOVER && currentState !== GAME_STATE.WON && currentState !== GAME_STATE.START)
     {
         if (currentState === GAME_STATE.PLAYING)
@@ -229,7 +221,7 @@ document.addEventListener("keyup", (e) =>
     }
 });
 
-// --- TOUCH-STEUERUNG FÜR MOBILGERÄTE (MULTITOUCH) ---
+// --- TOUCH-STEUERUNG FÜR MOBILGERÄTE ---
 function handleTouchStart(e)
 {
     e.preventDefault();
@@ -242,7 +234,6 @@ function handleTouchStart(e)
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    // Bewegungseingaben zurücksetzen
     keys["ArrowLeft"] = false;
     keys["ArrowRight"] = false;
 
@@ -252,31 +243,25 @@ function handleTouchStart(e)
         const touchX = (touch.clientX - rect.left) * scaleX;
         const touchY = (touch.clientY - rect.top) * scaleY;
 
-        // 1. Highscore-Icon Check bei Game Over oder Sieg
         if ((currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER) && typeof checkScoreboardIconClick === "function")
         {
             if (checkScoreboardIconClick(touchX, touchY, canvas.width, canvas.height)) return;
         }
 
-        // Restart bei Game Over / Sieg per Touch
         if ((currentState === GAME_STATE.WON || currentState === GAME_STATE.GAMEOVER) && restartCooldownTimer === 0)
         {
             initLevel2();
             return;
         }
 
-        // 2. Bewegung LINKS: Button unten links (x: 15 bis 65, y >= 370)
         if (touchX >= 10 && touchX <= 68 && touchY >= 370)
         {
             keys["ArrowLeft"] = true;
         }
-        // 3. Bewegung RECHTS: Button unten links (x: 72 bis 128, y >= 370)
         else if (touchX >= 72 && touchX <= 130 && touchY >= 370)
         {
             keys["ArrowRight"] = true;
         }
-
-        // 4. Schlag aufladen: Rechte Bildschirmhälfte (x > 180)
         else if (touchX > 180)
         {
             if (!powerCharging && shotCooldownTimer === 0 && remainingBalls > 0 && currentState === GAME_STATE.PLAYING)
@@ -315,14 +300,11 @@ canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
 canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
 canvas.addEventListener("touchmove", handleTouchStart, { passive: false });
 
-// --- TOUCH-BUTTONS ZEICHNEN ---
-// --- RETRO PIXEL-TOUCH-BUTTONS ZEICHNEN ---
 function drawTouchControls(ctx)
 {
     const btnY = 385;
     const btnSize = 50;
 
-    // Button-Konfigurationen: [X-Position, Symbol, Key-State]
     const btnLeftPressed = keys["ArrowLeft"];
     const btnRightPressed = keys["ArrowRight"];
 
@@ -333,36 +315,31 @@ function drawTouchControls(ctx)
 
     for (let btn of buttons)
     {
-        let offset = btn.pressed ? 2 : 0; // Einsinken beim Drücken
+        let offset = btn.pressed ? 2 : 0;
 
-        // 1. Dunkler 3D-Schatten unten
         ctx.fillStyle = "#1e293b";
         ctx.fillRect(btn.x, btn.y + 4, btnSize, btnSize);
 
-        // 2. Haupt-Button Body (Sandgelb/Retro-Gold)
         ctx.fillStyle = btn.pressed ? "#d35400" : "#f39c12";
         ctx.fillRect(btn.x, btn.y + offset, btnSize, btnSize);
 
-        // 3. Pixel-Rand
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 2;
         ctx.strokeRect(btn.x, btn.y + offset, btnSize, btnSize);
 
-        // 4. Highlight Kante oben
         if (!btn.pressed)
         {
             ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
             ctx.fillRect(btn.x + 2, btn.y + 2, btnSize - 4, 4);
         }
 
-        // 5. Pfeil-Symbol
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 20px monospace";
         ctx.textAlign = "center";
         ctx.fillText(btn.text, btn.x + (btnSize / 2), btn.y + offset + 32);
     }
 
-    ctx.textAlign = "left"; // Alignment zurücksetzen
+    ctx.textAlign = "left";
 }
 
 function shootBall()
@@ -412,8 +389,8 @@ function startScoreTally()
     }
 }
 
-// GAME LOOP
-function gameLoop()
+// UPDATE & RENDER SCHLEIFE
+function updateLevel2()
 {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -540,11 +517,9 @@ function gameLoop()
 
     if (currentState === GAME_STATE.PAUSED)
     {
-        // Dunkler Overlay-Schleier
         ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Pause Text
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 36px Arial";
         ctx.textAlign = "center";
@@ -553,9 +528,7 @@ function gameLoop()
         ctx.font = "16px Arial";
         ctx.fillStyle = "#dddddd";
         ctx.fillText("Drücke 'P' zum Fortsetzen", canvas.width / 2, 240);
-        ctx.textAlign = "left"; // Rest-Alignment zurücksetzen
-
-        requestAnimationFrame(gameLoop);
+        ctx.textAlign = "left";
         return;
     }
 
@@ -695,11 +668,27 @@ function gameLoop()
         }
     }
 
-    // Touch-Buttons für Mobilgeräte zeichnen
     drawTouchControls(ctx);
+}
 
-    requestAnimationFrame(gameLoop);
+// --- FESTE 60 FPS GAME LOOP ---
+let lastTimeLevel2 = 0;
+const targetFPSLevel2 = 60;
+const frameIntervalLevel2 = 1000 / targetFPSLevel2;
+
+function gameLoopLevel2(timestamp)
+{
+    if (!lastTimeLevel2) lastTimeLevel2 = timestamp;
+    const elapsed = timestamp - lastTimeLevel2;
+
+    if (elapsed >= frameIntervalLevel2)
+    {
+        lastTimeLevel2 = timestamp - (elapsed % frameIntervalLevel2);
+        updateLevel2();
+    }
+
+    requestAnimationFrame(gameLoopLevel2);
 }
 
 initLevel2();
-gameLoop();
+requestAnimationFrame(gameLoopLevel2);

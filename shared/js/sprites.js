@@ -25,6 +25,70 @@ var colorPalette = {
     23: "#1b5e20"  // Moos-Grün
 };
 
+// --- SPRITE-KLASSE MIT OPTIMIERTEM CACHING FOR MOBILE ---
+class AnimatedSprite
+{
+    constructor(frames, pixelSize, ticksPerFrame = 12)
+    {
+        this.frames = frames;
+        this.pixelSize = pixelSize;
+        this.currentFrame = 0;
+        this.tickCount = 0;
+        this.ticksPerFrame = ticksPerFrame;
+        
+        // Caching-Canvases pre-rendern
+        this.cachedCanvas = [];
+        this.preRender();
+    }
+
+    preRender()
+    {
+        for (let i = 0; i < this.frames.length; i++)
+        {
+            const frame = this.frames[i];
+            const rows = frame.length;
+            const cols = frame[0].length;
+
+            const offscreen = document.createElement("canvas");
+            offscreen.width = cols * this.pixelSize;
+            offscreen.height = rows * this.pixelSize;
+            const offCtx = offscreen.getContext("2d");
+
+            for (let row = 0; row < rows; row++)
+            {
+                for (let col = 0; col < cols; col++)
+                {
+                    let colorIndex = frame[row][col];
+                    if (colorIndex !== 0)
+                    {
+                        offCtx.fillStyle = colorPalette[colorIndex];
+                        offCtx.fillRect(col * this.pixelSize, row * this.pixelSize, this.pixelSize, this.pixelSize);
+                    }
+                }
+            }
+            this.cachedCanvas.push(offscreen);
+        }
+    }
+
+    update()
+    {
+        this.tickCount++;
+        if (this.tickCount >= this.ticksPerFrame)
+        {
+            this.tickCount = 0;
+            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+        }
+    }
+
+    draw(ctx, x, y)
+    {
+        if (this.cachedCanvas[this.currentFrame])
+        {
+            ctx.drawImage(this.cachedCanvas[this.currentFrame], Math.round(x), Math.round(y));
+        }
+    }
+}
+
 // --- GOLFER ANIMATIONEN ---
 const golferFrame1 = [
     [0,0,0,1,1,0,0,0],

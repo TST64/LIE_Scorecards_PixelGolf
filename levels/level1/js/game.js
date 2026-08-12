@@ -157,7 +157,6 @@ document.addEventListener("keydown", (e) =>
         {
             currentState = GAME_STATE.PLAYING;
             if (typeof startC64Music === "function") startC64Music();
-            requestAnimationFrame(gameLoop);
         }
         return;
     }
@@ -165,7 +164,6 @@ document.addEventListener("keydown", (e) =>
     if (currentState === GAME_STATE.GAMEOVER && (e.code === "KeyR" || e.code === "Enter"))
     {
         resetGame();
-        requestAnimationFrame(gameLoop);
         return;
     }
 });
@@ -208,7 +206,6 @@ function handleCanvasInteraction(clientX, clientY)
     if (currentState === GAME_STATE.GAMEOVER)
     {
         resetGame();
-        requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -289,8 +286,8 @@ function drawEnvironment(ctx)
     }
 }
 
-// GAME LOOP
-function gameLoop()
+// UPDATE & RENDER SCHLEIFE
+function updateGame()
 {
     if (currentState === GAME_STATE.START)
     {
@@ -311,8 +308,6 @@ function gameLoop()
         ctx.font = "12px Arial";
         ctx.fillStyle = "#ddd";
         ctx.fillText("Steuerung: Tippen = Hüpfen | Gedrückt halten = Segeln (Stamina)", 210, 240);
-
-        requestAnimationFrame(gameLoop);
         return;
     }
 
@@ -630,8 +625,25 @@ function gameLoop()
             playerSprite.draw(ctx, player.x, player.y);
         }
     }
+}
+
+// --- FESTE 60 FPS GAME LOOP ---
+let lastTime = 0;
+const targetFPS = 60;
+const frameInterval = 1000 / targetFPS;
+
+function gameLoop(timestamp)
+{
+    if (!lastTime) lastTime = timestamp;
+    const elapsed = timestamp - lastTime;
+
+    if (elapsed >= frameInterval)
+    {
+        lastTime = timestamp - (elapsed % frameInterval);
+        updateGame();
+    }
 
     requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
+requestAnimationFrame(gameLoop);
